@@ -3,7 +3,7 @@ from bson import ObjectId
 from decouple import config
 from motor import motor_asyncio
 from models.UsuarioModel import UsuarioCriarModel
-from services.AuthService import gerar_senha_criptografada
+from utils.AuthUtil import gerar_senha_criptografada
 
 MONGODB_URL = config("MONGODB_URL")
 
