@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 
 
 class Usuariomodel(BaseModel):
+    id: str = Field(...)
     nome: str = Field(...)
     email: EmailStr = Field(...)
     senha: str = Field(...)
@@ -17,7 +18,6 @@ class Usuariomodel(BaseModel):
             }
         }
 class UsuarioCriarModel(BaseModel):
-    id: str | None = None
     nome: str = Field(...)
     email: EmailStr = Field(...)
     senha: str = Field(...)

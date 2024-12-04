@@ -12,8 +12,8 @@ JWT_SECRET = config("JWT_SECRET")
 
 def gerar_token_jwt(usuario_id: str) -> str:
     payload = {
-        "ususario_id": usuario_id,
-        "expires": time.time() + 600
+        "usuario_id": usuario_id,
+        "expires": time.time() + 6000
     }
 
     token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
@@ -23,8 +23,7 @@ def gerar_token_jwt(usuario_id: str) -> str:
 
 def decodificar_token_jwt(token: str):
     try:
-
-        token_decodificado = jwt.decode(token, JWT_SECRET, algorithm=["HS256"])
+        token_decodificado = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
 
         if token_decodificado["expires"] >= time.time():
             return token_decodificado
@@ -32,11 +31,8 @@ def decodificar_token_jwt(token: str):
             return None
 
     except Exception as erro:
-        return {
-            "mensagem": "Erro interno no servidor",
-            "dados": str(erro),
-            "status": 500
-        }
+        print(erro)
+        return None
 
 
 async def login_service(usuario: UsuarioLoginModel):

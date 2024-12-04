@@ -1,11 +1,10 @@
 from models.UsuarioModel import UsuarioCriarModel
 from repositories.UsuarioRepository import (
     criar_usuario,
-    atualizar_usuario,
-    listar_usuarios,
     buscar_usuario_email,
-    deletar_usuario
+    buscar_usuario
 )
+
 
 async def registrar_usuario(usuario: UsuarioCriarModel):
     try:
@@ -18,12 +17,12 @@ async def registrar_usuario(usuario: UsuarioCriarModel):
                 "status": 400
             }
         else:
-            novo_usuario = await criar_usuario(usuario)
-        return {
-            "mensagem": f'Usuário cadastrado com sucesso!',
-            "dados": novo_usuario,
-            "status": 201
-        }
+            return {
+                "mensagem": f'Usuário com id: {id} não foi encontrado',
+                "dados": "",
+                "status": 404
+            }
+
     except Exception as error:
         return {
             "mensagem": "Erro interno no servidor",
@@ -31,3 +30,28 @@ async def registrar_usuario(usuario: UsuarioCriarModel):
             "status": 500
         }
 
+
+async def buscar_usuario_logado(id: str):
+    try:
+        usuario_encontrado = await buscar_usuario(id)
+        if usuario_encontrado:
+            return {
+                "mensagem": f"Usuario encontrado",
+                "dados": usuario_encontrado,
+                "status": 200
+            }
+
+        else:
+            return {
+                "mensagem": f"Usuario encontrado",
+                "dados": usuario_encontrado,
+                "status": 200
+            }
+
+    except Exception as error:
+        print(error)
+        return {
+            "mensagem": "Erro interno no servidor",
+            "dados": str(error),
+            "status": 500
+        }
