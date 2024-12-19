@@ -64,7 +64,7 @@ class UsuarioAtualizarModel(BaseModel):
     nome: str = Field(...)
     email: EmailStr = Field(...)
     senha: str = Field(...)
-    foto: UploadFile = Field(...)
+    foto: UploadFile = None
 
     class Config:
         schema_extra = {

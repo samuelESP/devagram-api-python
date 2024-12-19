@@ -15,7 +15,6 @@ class UsuarioService:
     async def registrar_usuario(self, usuario: UsuarioCriarModel, caminho_foto):
         try:
             usuario_encontrado = await usuarioRepository.buscar_usuario_email(usuario.email)
-
             if usuario_encontrado:
                 return {
                     "mensagem": f"{usuario.email} já cadastrado no nosso banco de dados",

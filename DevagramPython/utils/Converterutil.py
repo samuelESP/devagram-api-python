@@ -1,5 +1,6 @@
 class ConverterUtil:
     def usuario_converter(self, usuario):
+
         return {
             "id": str(usuario["_id"]),
             "nome": usuario["nome"],

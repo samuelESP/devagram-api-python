@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, Body
+from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, Form, File
 
 from middleware.JWTmiddleware import verificar_token
 from models.UsuarioModel import UsuarioCriarModel, UsuarioAtualizarModel
@@ -15,15 +15,17 @@ usuarioService = UsuarioService()
 
 
 @router.post("/", response_description="Rota para criar um novo usuário")
-async def rota_criar_usuario(file: UploadFile, usuario: UsuarioCriarModel = Depends(UsuarioCriarModel)):
+async def rota_criar_usuario(nome: str = Form(...),
+    email: str = Form(...),
+    senha: str = Form(...),
+    file: UploadFile = File(...)):
     try:
         caminho_foto = f'files/foto-{datetime.now().strftime("%H%M%S")}.jpg'
 
         with open(caminho_foto, 'wb+') as arquivo:
             arquivo.write(file.file.read())
-
+        usuario = UsuarioCriarModel(nome=nome, email=email, senha=senha)
         resultado = await usuarioService.registrar_usuario(usuario, caminho_foto)
-
         os.remove(caminho_foto)
 
         if not resultado['status'] == 201:
@@ -60,11 +62,27 @@ async def buscar_info_usuario_logado(authorization: str = Header(default='')):
 )
 async def atualizar_usuario_logado(
         authorization: str = Header(default=''),
-        usuario_atualizar: UsuarioAtualizarModel = Body(...)):
+        nome: str = Form(...),
+        email: str = Form(...),
+        senha: str = Form(...),
+        foto: UploadFile = File(None)):
     try:
         token = authorization.split(" ")[1]
         payload = decodificar_token_jwt(token)
-        resultado = await usuarioService.atualizar_usuario_logado(payload["id"], usuario_atualizar)
+        caminho_foto = None
+        if foto:
+            caminho_foto = f'files/foto-{datetime.now().strftime("%H%M%S")}.jpg'
+            with open(caminho_foto, 'wb+') as arquivo:
+                arquivo.write(foto.file.read())
+        usuario_atualizar = UsuarioAtualizarModel(
+            nome=nome,
+            email=email,
+            senha=senha,
+            foto=foto
+        )
+
+        resultado = await usuarioService.atualizar_usuario_logado(payload["usuario_id"], usuario_atualizar)
+
         if not resultado["status"] == 200:
             raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
 
@@ -72,3 +90,4 @@ async def atualizar_usuario_logado(
     except Exception as error:
         print(error)
         raise error
+
