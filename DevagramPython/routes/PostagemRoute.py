@@ -1,44 +1,49 @@
-import os
-from datetime import datetime
-
-from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile
-
+from fastapi import APIRouter, HTTPException, Depends, Header
 from middleware.JWTmiddleware import verificar_token
 from models.PostagemModel import PostagemCriarModel
-from models.UsuarioModel import UsuarioCriarModel
 from services.AuthService import decodificar_token_jwt
-
+from services.UsuarioService import UsuarioService
+from services.PostagemService import PostagemService
 
 router = APIRouter()
 
+usuarioService = UsuarioService()
+postagemService = PostagemService()
 
-@router.post("/", response_description="Rota para criar um novo post")
-async def rota_criar_postagem(file: UploadFile, usuario: PostagemCriarModel = Depends(PostagemCriarModel)):
+
+@router.post("/", response_description="Rota para criar um novo Post.", dependencies=[Depends(verificar_token)])
+async def rota_criar_postagem(
+        authorization: str = Header(default=''),
+        postagem: PostagemCriarModel = Depends(PostagemCriarModel)
+):
     try:
 
-        caminho_foto = f'files/foto-{datetime.now().strftime("%H%M%S")}.jpg'
-
-        with open(caminho_foto, 'wb+') as arquivo:
-            arquivo.write(file.file.read())
-
-        #resultado = await registrar_usuario(usuario, caminho_foto)
-
-        os.remove(caminho_foto)
+        token = authorization.split(" ")[1]
+        payload = decodificar_token_jwt(token)
+        resultado_usuario = await usuarioService.buscar_usuario_logado(payload["usuario_id"])
+        usuario_logado = resultado_usuario["dados"]
+        resultado = await postagemService.cadastrar_postagem(postagem, usuario_logado["id"])
+        if not resultado:
+            return {
+                "Errei": "errei"
+            }
+        return resultado
     except Exception as error:
         raise error
 
 
 @router.get(
     "/",
-    response_description="Rota par listar as postagens",
+    response_description="Rota para listar postagens",
     dependencies=[Depends(verificar_token)]
 )
-async def buscar_info_usuario_logado(Authorization: str = Header(default='')):
+async def listar_postagens():
     try:
+        resultado = await postagemService.listar_postagens()
 
-        return {
-            'try': "teste"
-        }
+        if not resultado["status"] == 200:
+            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
 
+        return resultado
     except Exception as error:
         raise error

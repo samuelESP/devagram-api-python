@@ -24,6 +24,7 @@ class UsuarioRepository:
         usuario_criado = await usuario_collection.insert_one(usuario.__dict__)
 
         novo_usuario = await usuario_collection.find_one({"_id": usuario_criado.inserted_id})
+
         return converterutil.usuario_converter(novo_usuario)
 
 
@@ -45,6 +46,9 @@ class UsuarioRepository:
     async def atualizar_usuario(self, id: str, dados_usuario: dict):
         usuario = await usuario_collection.find_one({"_id": ObjectId(id)})
         if usuario:
+            if 'senha' in dados_usuario and dados_usuario['senha'] is not usuario.get('senha'):
+                dados_usuario['senha'] = gerar_senha_criptografada(dados_usuario['senha'])
+                
             await usuario_collection.update_one(
                 {"_id": ObjectId(id)}, {"$set": dados_usuario}
             )

@@ -49,6 +49,7 @@ class UsuarioService:
 
     async def buscar_usuario_logado(self, id: str):
         try:
+
             usuario_encontrado = await usuarioRepository.buscar_usuario(id)
             if usuario_encontrado:
                 return {
