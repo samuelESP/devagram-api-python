@@ -23,7 +23,7 @@ class PostagemRepository:
         postagem_dict = {
             "usuario_id": ObjectId(usuario_id),
             "legenda": postagem.legenda,
-            "curtidas": 0,
+            "curtidas": [],
             "comentarios": [],
             "data": datetime.now()
         }

@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
 
+from bson import ObjectId
+
 from providers.AWSprovider import AWSprovider
 from repositories.PostagemRepository import PostagemRepository
 
@@ -61,3 +63,33 @@ class PostagemService:
                 "dados": str(error),
                 "status": 500
             }
+
+    async def curtir_descurtir(self, postagem_id, usuario_id):
+        try:
+
+            postagem_encontrada = await postagemRepository.buscar_postagem(postagem_id)
+
+            if postagem_encontrada["curtidas"].count(usuario_id) > 0:
+                postagem_encontrada["curtidas"].remove(usuario_id)
+            else:
+                postagem_encontrada["curtidas"].append(ObjectId(usuario_id))
+
+            postagem_atualizada = await postagemRepository.atualizar_postagem(
+                postagem_encontrada["id"],
+                {"curtidas": postagem_encontrada["curtidas"]}
+            )
+
+            return {
+                "mensagem": "Ação realizada com sucesso",
+                "dados": postagem_atualizada,
+                "status": 200
+            }
+
+
+        except Exception as error:
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(error),
+                "status": 500
+            }
+
