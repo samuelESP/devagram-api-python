@@ -50,7 +50,12 @@ class PostagemService:
 
     async def listar_postagens(self):
         try:
+
             postagens = await postagemRepository.listar_postagem()
+
+            for p in postagens:
+                p["total_curtidas"] = len(p["curtidas"])
+
             return {
                 "mensagem": "Postagens listadas com sucesso!",
                 "dados": postagens,
@@ -93,3 +98,27 @@ class PostagemService:
                 "status": 500
             }
 
+    async def criar_comentario(self, postagem_id, usuario_id, comentario):
+        try:
+            postagem_encontrada = await postagemRepository.buscar_postagem(postagem_id)
+            print(postagem_encontrada)
+            postagem_encontrada["comentarios"].append({
+                "usuario_id": ObjectId(usuario_id),
+                "comentario": comentario
+            })
+
+            postagem_atualizada = await postagemRepository.atualizar_postagem(
+                postagem_encontrada["id"],
+                {"comentarios": postagem_encontrada["comentarios"]}
+            )
+            return {
+                "mensagem": "Comentário criado com sucesso!",
+                "dados": postagem_atualizada,
+                "status": 200
+            }
+        except Exception as error:
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(error),
+                "status": 500
+            }

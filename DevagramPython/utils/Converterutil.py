@@ -17,6 +17,6 @@ class ConverterUtil:
             "legenda": postagem["legenda"] if "legenda" in postagem else "",
             "data": postagem["data"] if "data" in postagem else "",
             "curtidas": [str(p) for p in postagem["curtidas"]] if "curtidas" in postagem else "",
-            "cometarios": postagem["cometarios"] if "cometarios" in postagem else "",
+            "comentarios": [str(p) for p in postagem["comentarios"]] if "comentarios" in postagem else "",
              "usuario": self.usuario_converter(postagem["usuario"][0]) if "usuario" in postagem and len(postagem["usuario"]) > 0 else ""
         }
