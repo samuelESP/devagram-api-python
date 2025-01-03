@@ -120,8 +120,8 @@ class PostagemService:
     async def criar_comentario(self, postagem_id, usuario_id, comentario):
         try:
             postagem_encontrada = await postagemRepository.buscar_postagem(postagem_id)
-            print(postagem_encontrada)
             postagem_encontrada["comentarios"].append({
+                "comentario_id": ObjectId(),
                 "usuario_id": ObjectId(usuario_id),
                 "comentario": comentario
             })
@@ -173,5 +173,71 @@ class PostagemService:
             return {
                 "mensagem": "Erro interno no servidor",
                 "dados": str(error),
+                "status": 500
+            }
+
+    async def deletar_comentario(self, postagem_id, usuario_id, comentario_id):
+        try:
+            postagem_encontrada = await postagemRepository.buscar_postagem(postagem_id)
+
+            for comentario in postagem_encontrada["comentarios"]:
+                if comentario["comentario_id"] == comentario_id:
+                    if not (comentario["usuario_id"] == usuario_id or postagem_encontrada["usuario_id"] == usuario_id):
+                        return {
+                            "mensagem": "Requisição Inválida",
+                            "dados": "",
+                            "status": 401
+                        }
+                    postagem_encontrada["comentarios"].remove(comentario)
+
+
+
+            postagem_atualizada = await postagemRepository.atualizar_postagem(
+                postagem_encontrada["id"],
+                {"comentarios": postagem_encontrada["comentarios"]}
+            )
+
+            return {
+                "mensagem": "Comentário deletado com sucesso!",
+                "dados": postagem_atualizada,
+                "status": 200
+            }
+        except Exception as erro:
+            print(erro)
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(erro),
+                "status": 500
+            }
+
+    async def atualizar_comentario(self, postagem_id, usuario_id, comentario_id, comentario_atualizado):
+        try:
+            postagem_encontrada = await postagemRepository.buscar_postagem(postagem_id)
+
+            for comentario in postagem_encontrada["comentarios"]:
+                if comentario["comentario_id"] == comentario_id:
+                    if not comentario["usuario_id"] == usuario_id:
+                        return {
+                            "mensagem": "Requisição Inválida",
+                            "dados": "",
+                            "status": 401
+                        }
+                    comentario["comentario"] = comentario_atualizado
+
+            postagem_atualizada = await postagemRepository.atualizar_postagem(
+                postagem_encontrada["id"],
+                {"comentarios": postagem_encontrada["comentarios"]}
+            )
+
+            return {
+                "mensagem": "Comentário deletado com sucesso!",
+                "dados": postagem_atualizada,
+                "status": 200
+            }
+        except Exception as erro:
+            print(erro)
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(erro),
                 "status": 500
             }

@@ -46,7 +46,7 @@ async def buscar_info_usuario_logado(authorization: str = Header(default='')):
 
         token = authorization.split(" ")[1]
         payload = decodificar_token_jwt(token)
-        resultado = await usuarioService.buscar_usuario_logado(payload["usuario_id"])
+        resultado = await usuarioService.buscar_usuario(payload["usuario_id"])
         if not resultado["status"] == 200:
             raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
 
@@ -89,5 +89,57 @@ async def atualizar_usuario_logado(
         return resultado
     except Exception as error:
         print(error)
+        raise error
+
+
+@router.put(
+    '/seguir/{usuario_id}',
+    response_description="Rota para follow/unfollow em um usuário.",
+    dependencies=[Depends(verificar_token)]
+)
+async def follow_unfollow_usuario(usuario_id: str, Authorization: str = Header(default='')):
+    token = Authorization.split(' ')[1]
+    payload = decodificar_token_jwt(token)
+    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
+    usuario_logado = resultado_usuario["dados"]
+
+    resultado = await usuarioService.follow_unfollow_usuario(usuario_logado["id"], usuario_id)
+
+    if not resultado["status"] == 200:
+        raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+
+    return resultado
+
+
+@router.get(
+    '/',
+    response_description='Rota para listar todos usuários.',
+    dependencies=[Depends(verificar_token)]
+    )
+async def listar_usuarios(nome: str):
+    try:
+        resultado = await usuarioService.listar_usuarios(nome)
+
+        if not resultado["status"] == 200:
+            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+
+        return resultado
+    except Exception as erro:
+        raise erro
+
+
+@router.get(
+    "/{usuario_id}",
+    response_description="Rota de Busca de informações do usuario logado",
+    dependencies=[Depends(verificar_token)]
+)
+async def buscar_info_usuario_logado(usuario_id: str):
+    try:
+        resultado = await usuarioService.buscar_usuario(usuario_id)
+        if not resultado["status"] == 200:
+            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+
+        return resultado
+    except Exception as error:
         raise error
 

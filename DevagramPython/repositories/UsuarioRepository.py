@@ -36,8 +36,23 @@ class UsuarioRepository:
         return converterutil.usuario_converter(novo_usuario)
 
 
-    async def listar_usuarios(self):
-        return usuario_collection.find()
+    async def listar_usuarios(self, nome):
+        usuarios_encontrados = usuario_collection.find({
+            "nome": {
+                "$regex": nome,
+                '$options': 'i'
+            }
+        })
+
+        usuarios = []
+
+
+        usuarios = []
+
+        async for usuario in usuarios_encontrados:
+            usuarios.append(converterutil.usuario_converter(usuario))
+
+        return usuarios
 
 
     async def buscar_usuario(self, id: str) ->dict:

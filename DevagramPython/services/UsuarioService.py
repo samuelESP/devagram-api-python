@@ -1,14 +1,17 @@
 import os
 from datetime import datetime
 
+from bson import ObjectId
+
 from models.UsuarioModel import UsuarioCriarModel, UsuarioAtualizarModel
 from providers.AWSprovider import AWSprovider
 from repositories.UsuarioRepository import UsuarioRepository
-
+from repositories.PostagemRepository import PostagemRepository
 
 awsProvider = AWSprovider()
 
 usuarioRepository = UsuarioRepository()
+postagemRepository = PostagemRepository()
 
 
 class UsuarioService:
@@ -47,10 +50,19 @@ class UsuarioService:
                 "status": 500
             }
 
-    async def buscar_usuario_logado(self, id: str):
+    async def buscar_usuario(self, id: str):
         try:
 
             usuario_encontrado = await usuarioRepository.buscar_usuario(id)
+
+            postagens_encontradas = await postagemRepository.listar_postagens_usuario(id)
+
+            print(postagens_encontradas)
+            usuario_encontrado["total_seguindo"] = len(usuario_encontrado["seguindo"])
+            usuario_encontrado["total_seguidores"] = len(usuario_encontrado["seguidores"])
+            usuario_encontrado['postagens'] = postagens_encontradas
+            usuario_encontrado["total_postagem"] = len(postagens_encontradas)
+
             if usuario_encontrado:
                 return {
                     "mensagem": f"Usuario encontrado",
@@ -115,5 +127,66 @@ class UsuarioService:
             return {
                 "mensagem": "Erro interno no servidor",
                 "dados": str(error),
+                "status": 500
+            }
+
+    async def follow_unfollow_usuario(self, usuario_logado_id, usuario_seguido_id):
+        try:
+
+            usuario_logado_encontrado = await usuarioRepository.buscar_usuario(usuario_logado_id)
+            usuario_seguido_encontrado = await usuarioRepository.buscar_usuario(usuario_seguido_id)
+
+            if usuario_seguido_encontrado["seguidores"].count(usuario_logado_id) > 0:
+                usuario_seguido_encontrado["seguidores"].remove(usuario_logado_id)
+                usuario_logado_encontrado["seguindo"].remove(usuario_seguido_id)
+            else:
+                usuario_seguido_encontrado["seguidores"].append(ObjectId(usuario_logado_id))
+                usuario_logado_encontrado["seguindo"].append(ObjectId(usuario_seguido_id))
+
+            await usuarioRepository.atualizar_usuario(
+                usuario_seguido_encontrado["id"],
+                {
+                    "seguidores": usuario_seguido_encontrado["seguidores"]
+                }
+            )
+
+            await usuarioRepository.atualizar_usuario(
+                usuario_logado_encontrado["id"],
+                {
+                    "seguindo": usuario_logado_encontrado["seguindo"]
+                }
+            )
+
+            return {
+                "mensagem": "Requisição realizada com sucesso.",
+                "dados": "",
+                "status": 200
+            }
+
+        except Exception as error:
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(error),
+                "status": 500
+            }
+
+    async def listar_usuarios(self, nome):
+        try:
+            usuarios_encontrado = await usuarioRepository.listar_usuarios(nome)
+            for usuario in usuarios_encontrado:
+                usuario["total_seguindo"] = len(usuario["seguindo"])
+                usuario["total_seguidores"] = len(usuario["seguidores"])
+
+            return {
+                "mensagem": "Usuários listados com sucesso!",
+                "dados": usuarios_encontrado,
+                "status": 200
+            }
+
+        except Exception as erro:
+            print(erro)
+            return {
+                "mensagem": "Erro interno no servidor",
+                "dados": str(erro),
                 "status": 500
             }
