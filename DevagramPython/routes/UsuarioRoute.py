@@ -5,12 +5,12 @@ from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, Form,
 
 from middleware.JWTmiddleware import verificar_token
 from models.UsuarioModel import UsuarioCriarModel, UsuarioAtualizarModel
-from services.AuthService import decodificar_token_jwt
+from services.AuthService import AuthService
 from services.UsuarioService import UsuarioService
 
 router = APIRouter()
 
-
+authService = AuthService()
 usuarioService = UsuarioService()
 
 
@@ -28,8 +28,8 @@ async def rota_criar_usuario(nome: str = Form(...),
         resultado = await usuarioService.registrar_usuario(usuario, caminho_foto)
         os.remove(caminho_foto)
 
-        if not resultado['status'] == 201:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 201:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:
@@ -44,11 +44,10 @@ async def rota_criar_usuario(nome: str = Form(...),
 async def buscar_info_usuario_logado(authorization: str = Header(default='')):
     try:
 
-        token = authorization.split(" ")[1]
-        payload = decodificar_token_jwt(token)
-        resultado = await usuarioService.buscar_usuario(payload["usuario_id"])
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        usuario_logado = await authService.buscar_usuario_logado(authorization)
+        resultado = await usuarioService.buscar_usuario(usuario_logado.id)
+        if not resultado.status == 200:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:
@@ -67,8 +66,7 @@ async def atualizar_usuario_logado(
         senha: str = Form(...),
         foto: UploadFile = File(None)):
     try:
-        token = authorization.split(" ")[1]
-        payload = decodificar_token_jwt(token)
+        usuario_logado = await authService.buscar_usuario_logado(authorization)
         caminho_foto = None
         if foto:
             caminho_foto = f'files/foto-{datetime.now().strftime("%H%M%S")}.jpg'
@@ -81,10 +79,10 @@ async def atualizar_usuario_logado(
             foto=foto
         )
 
-        resultado = await usuarioService.atualizar_usuario_logado(payload["usuario_id"], usuario_atualizar)
+        resultado = await usuarioService.atualizar_usuario_logado(usuario_logado.id, usuario_atualizar)
 
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 201:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:
@@ -98,15 +96,11 @@ async def atualizar_usuario_logado(
     dependencies=[Depends(verificar_token)]
 )
 async def follow_unfollow_usuario(usuario_id: str, Authorization: str = Header(default='')):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
+    resultado = await usuarioService.follow_unfollow_usuario(usuario_logado.id, usuario_id)
 
-    resultado = await usuarioService.follow_unfollow_usuario(usuario_logado["id"], usuario_id)
-
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+    if not resultado.status == 201:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado
 
@@ -120,8 +114,8 @@ async def listar_usuarios(nome: str):
     try:
         resultado = await usuarioService.listar_usuarios(nome)
 
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 200:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as erro:
@@ -136,8 +130,8 @@ async def listar_usuarios(nome: str):
 async def buscar_info_usuario_logado(usuario_id: str):
     try:
         resultado = await usuarioService.buscar_usuario(usuario_id)
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 200:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:

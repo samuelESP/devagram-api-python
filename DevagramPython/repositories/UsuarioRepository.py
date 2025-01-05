@@ -1,9 +1,11 @@
+from typing import List
+
 import motor
 from bson import ObjectId
 from decouple import config
 from motor import motor_asyncio
-from models.UsuarioModel import UsuarioCriarModel
-from utils.AuthUtil import gerar_senha_criptografada
+from models.UsuarioModel import UsuarioCriarModel, Usuariomodel
+from utils.AuthUtil import Authutil
 from utils.Converterutil import ConverterUtil
 
 MONGODB_URL = config("MONGODB_URL")
@@ -16,10 +18,12 @@ usuario_collection = database.get_collection("usuario")
 
 
 converterutil = ConverterUtil()
+authUtil = Authutil()
+
 class UsuarioRepository:
 
-    async def criar_usuario(self, usuario: UsuarioCriarModel) -> dict:
-        usuario.senha = gerar_senha_criptografada(usuario.senha)
+    async def criar_usuario(self, usuario: UsuarioCriarModel) -> Usuariomodel:
+        usuario.senha = authUtil.gerar_senha_criptografada(usuario.senha)
 
         usuario_dict = {
             "nome": usuario.nome,
@@ -36,7 +40,7 @@ class UsuarioRepository:
         return converterutil.usuario_converter(novo_usuario)
 
 
-    async def listar_usuarios(self, nome):
+    async def listar_usuarios(self, nome) -> List[Usuariomodel]:
         usuarios_encontrados = usuario_collection.find({
             "nome": {
                 "$regex": nome,
@@ -55,22 +59,22 @@ class UsuarioRepository:
         return usuarios
 
 
-    async def buscar_usuario(self, id: str) ->dict:
+    async def buscar_usuario(self, id: str) -> Usuariomodel:
         usuario = await usuario_collection.find_one({"_id": ObjectId(id)})
         if usuario:
             return converterutil.usuario_converter(usuario)
 
 
-    async def buscar_usuario_email(self, email: str) -> dict:
+    async def buscar_usuario_email(self, email: str) -> Usuariomodel:
         usuario = await usuario_collection.find_one({"email": email})
 
         if usuario:
             return converterutil.usuario_converter(usuario)
-    async def atualizar_usuario(self, id: str, dados_usuario: dict):
+    async def atualizar_usuario(self, id: str, dados_usuario: dict) -> Usuariomodel:
         usuario = await usuario_collection.find_one({"_id": ObjectId(id)})
         if usuario:
             if 'senha' in dados_usuario and dados_usuario['senha'] is not usuario.get('senha'):
-                dados_usuario['senha'] = gerar_senha_criptografada(dados_usuario['senha'])
+                dados_usuario['senha'] = authUtil.gerar_senha_criptografada(dados_usuario['senha'])
                 
             await usuario_collection.update_one(
                 {"_id": ObjectId(id)}, {"$set": dados_usuario}

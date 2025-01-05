@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Body
 from middleware.JWTmiddleware import verificar_token
 from models.ComentarioModel import ComentarioCriarModel, ComentarioAtualizarModel
 from models.PostagemModel import PostagemCriarModel
-from services.AuthService import decodificar_token_jwt
+from services.AuthService import AuthService
 from services.UsuarioService import UsuarioService
 from services.PostagemService import PostagemService
 
@@ -10,7 +10,7 @@ router = APIRouter()
 
 usuarioService = UsuarioService()
 postagemService = PostagemService()
-
+authService = AuthService()
 
 @router.post("/", response_description="Rota para criar um novo Post.", dependencies=[Depends(verificar_token)])
 async def rota_criar_postagem(
@@ -18,16 +18,10 @@ async def rota_criar_postagem(
         postagem: PostagemCriarModel = Depends(PostagemCriarModel)
 ):
     try:
-
-        token = authorization.split(" ")[1]
-        payload = decodificar_token_jwt(token)
-        resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-        usuario_logado = resultado_usuario["dados"]
-        resultado = await postagemService.cadastrar_postagem(postagem, usuario_logado["id"])
-        if not resultado:
-            return {
-                "Errei": "errei"
-            }
+        usuario_logado = await authService.buscar_usuario_logado(authorization)
+        resultado = await postagemService.cadastrar_postagem(postagem, usuario_logado.id)
+        if not resultado.status == 201:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
         return resultado
     except Exception as error:
         raise error
@@ -42,8 +36,8 @@ async def listar_postagens():
     try:
         resultado = await postagemService.listar_postagens()
 
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 200:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:
@@ -59,8 +53,8 @@ async def listar_postagens_usuario(usuario_id: str):
     try:
         resultado = await postagemService.listar_postagens_usuario(usuario_id)
 
-        if not resultado["status"] == 200:
-            raise HTTPException(status_code=resultado['status'], detail=resultado['mensagem'])
+        if not resultado.status == 200:
+            raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
         return resultado
     except Exception as error:
@@ -75,15 +69,12 @@ async def listar_postagens_usuario(usuario_id: str):
     dependencies=[Depends(verificar_token)]
 )
 async def curtir_descurtir_postagem(postagem_id: str, Authorization: str = Header(default='')):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
 
-    resultado = await postagemService.curtir_descurtir(postagem_id, usuario_logado["id"])
+    resultado = await postagemService.curtir_descurtir(postagem_id, usuario_logado.id)
 
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado["status"], detail=resultado["mensagem"])
+    if not resultado.status == 200:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado
 
@@ -94,15 +85,12 @@ async def curtir_descurtir_postagem(postagem_id: str, Authorization: str = Heade
     dependencies=[Depends(verificar_token)]
 )
 async def comentar_postagem(postagem_id: str, Authorization: str = Header(default=''), comentario_model: ComentarioCriarModel = Body(...)):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
 
-    resultado = await postagemService.criar_comentario(postagem_id, usuario_logado["id"], comentario_model.comentario)
+    resultado = await postagemService.criar_comentario(postagem_id, usuario_logado.id, comentario_model.comentario)
 
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado["status"], detail=resultado["mensagem"])
+    if not resultado.status == 200:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado
 
@@ -113,15 +101,11 @@ async def comentar_postagem(postagem_id: str, Authorization: str = Header(defaul
     dependencies=[Depends(verificar_token)]
 )
 async def deletar_postagen(postagem_id: str, Authorization: str = Header(default='')):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
+    resultado = await postagemService.deletar_postagem(postagem_id, usuario_logado.id)
 
-    resultado = await postagemService.deletar_postagem(postagem_id, usuario_logado["id"])
-
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado["status"], detail=resultado["mensagem"])
+    if not resultado.status == 200:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado
 
@@ -133,14 +117,11 @@ async def deletar_postagen(postagem_id: str, Authorization: str = Header(default
     dependencies=[Depends(verificar_token)]
 )
 async def deletar_comentario(postagem_id: str, comentario_id: str, Authorization: str = Header(default='')):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
-    resultado = await postagemService.deletar_comentario(postagem_id, usuario_logado["id"], comentario_id)
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
+    resultado = await postagemService.deletar_comentario(postagem_id, usuario_logado.id, comentario_id)
 
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado["status"], detail=resultado["mensagem"])
+    if not resultado.status == 200:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado
 
@@ -151,14 +132,11 @@ async def deletar_comentario(postagem_id: str, comentario_id: str, Authorization
     dependencies=[Depends(verificar_token)]
 )
 async def atualizar_comentario(postagem_id: str, comentario_id: str, Authorization: str = Header(default=''), comentario_model: ComentarioAtualizarModel = Body(...)):
-    token = Authorization.split(' ')[1]
-    payload = decodificar_token_jwt(token)
-    resultado_usuario = await usuarioService.buscar_usuario(payload["usuario_id"])
-    usuario_logado = resultado_usuario["dados"]
+    usuario_logado = await authService.buscar_usuario_logado(Authorization)
 
-    resultado = await postagemService.atualizar_comentario(postagem_id, usuario_logado["id"], comentario_id, comentario_model.comentario)
+    resultado = await postagemService.atualizar_comentario(postagem_id, usuario_logado.id, comentario_id, comentario_model.comentario)
 
-    if not resultado["status"] == 200:
-        raise HTTPException(status_code=resultado["status"], detail=resultado["mensagem"])
+    if not resultado.status == 200:
+        raise HTTPException(status_code=resultado.status, detail=resultado.mensagem)
 
     return resultado

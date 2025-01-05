@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import List
 
 import motor
 from bson import ObjectId
 from decouple import config
 from motor import motor_asyncio
-from models.PostagemModel import PostagemCriarModel
+from models.PostagemModel import PostagemCriarModel, PostagemModel
 from utils.Converterutil import ConverterUtil
 
 MONGODB_URL = config("MONGODB_URL")
@@ -18,7 +19,7 @@ postagem_collection = database.get_collection("postagem")
 converterUtil = ConverterUtil()
 class PostagemRepository:
 
-    async def criar_postagem(self, postagem: PostagemCriarModel, usuario_id) -> dict:
+    async def criar_postagem(self, postagem: PostagemCriarModel, usuario_id) -> PostagemModel:
 
         postagem_dict = {
             "usuario_id": ObjectId(usuario_id),
@@ -31,11 +32,10 @@ class PostagemRepository:
 
         postagem_criado = await postagem_collection.insert_one(postagem_dict)
         nova_postagem = await postagem_collection.find_one({"_id": postagem_criado.inserted_id})
-        print(nova_postagem)
         return converterUtil.postagem_converter(nova_postagem)
 
 
-    async def atualizar_postagem(self, id: str, dados_postagem: dict):
+    async def atualizar_postagem(self, id: str, dados_postagem: dict) -> PostagemModel:
         postagem = await postagem_collection.find_one({"_id": ObjectId(id)})
 
         if postagem:
@@ -49,7 +49,7 @@ class PostagemRepository:
 
             return converterUtil.postagem_converter(postagem_atualizada)
 
-    async def listar_postagem(self):
+    async def listar_postagem(self) -> List[PostagemModel]:
         postagens_encontradas = postagem_collection.aggregate([{
             "$lookup": {
                 "from": "usuario",
@@ -65,7 +65,7 @@ class PostagemRepository:
 
         return postagens
 
-    async def listar_postagens_usuario(self, usuario_id):
+    async def listar_postagens_usuario(self, usuario_id) -> List[PostagemModel]:
         postagens_encontradas = postagem_collection.aggregate([
             {
                 "$match": {
@@ -90,7 +90,7 @@ class PostagemRepository:
         return postagens
 
 
-    async def buscar_postagem(self, id: str) ->dict:
+    async def buscar_postagem(self, id: str) -> PostagemModel:
         postagem = await postagem_collection.find_one({"_id": ObjectId(id)})
         if postagem:
             return converterUtil.postagem_converter(postagem)
